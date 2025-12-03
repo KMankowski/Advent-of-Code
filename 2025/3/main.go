@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 )
 
 const INPUT_FILE = "./2025/3/input.txt"
@@ -20,31 +21,46 @@ func main() {
 		os.Exit(1)
 	}
 
-	joltage, err := run(input, logger)
+	joltagePart1, joltagePart2, err := run(input, logger)
 	if err != nil {
 		logger.Error("run() failed", "error", err)
 		os.Exit(1)
 	}
 
-	logger.Info("success", slog.Int("joltage", joltage))
+	logger.Info("success", slog.Int("part1", joltagePart1), slog.Int("part2", joltagePart2))
 }
 
-func run(r io.Reader, l *slog.Logger) (int, error) {
+func run(r io.Reader, l *slog.Logger) (int, int, error) {
 	banks := parseBanks(r)
-	joltage := 0
+
+	// Part 1
+	joltagePart1 := 0
 	for _, bank := range banks {
-		currJoltage, err := getJoltage(bank)
+		currJoltage, err := getJoltagePart1(bank)
 		if err != nil {
-			return 0, fmt.Errorf("getJoltage() error: %w", err)
+			return 0, 0, fmt.Errorf("getJoltagePart1() error: %w", err)
 		}
 
-		l.Debug("bank processed", slog.Int("joltage", currJoltage))
-		joltage += currJoltage
+		l.Debug("bank processed", slog.Int("part", 1), slog.Int("joltage", currJoltage))
+		joltagePart1 += currJoltage
 	}
-	return joltage, nil
+
+	// Part 2
+	joltagePart2 := 0
+	for _, bank := range banks {
+		currJoltage, err := getJoltagePart2(bank)
+		if err != nil {
+			return 0, 0, fmt.Errorf("getJoltagePart2() error: %w", err)
+		}
+
+		l.Debug("bank processed", slog.Int("part", 2), slog.Int("joltage", currJoltage))
+		joltagePart2 += currJoltage
+	}
+
+	return joltagePart1, joltagePart2, nil
 }
 
-func getJoltage(bank string) (int, error) {
+func getJoltagePart1(bank string) (int, error) {
 	max := int(bank[0] - byte('0'))
 	maxIndex := 0
 	for i, runeCurr := range bank[:len(bank)-1] {
@@ -69,6 +85,38 @@ func getJoltage(bank string) (int, error) {
 	}
 
 	return joltage, nil
+}
+
+func getJoltagePart2(bank string) (int, error) {
+	var joltageBuffer strings.Builder
+	leftIndex := 0
+	for i := range 12 {
+		newDigit, newIndex := findMax(bank[leftIndex : len(bank)-11+i])
+		joltageBuffer.WriteString(strconv.Itoa(newDigit))
+
+		// += since findMax() returns index relative to the slice passed in
+		leftIndex += newIndex + 1
+	}
+
+	joltage, err := strconv.Atoi(joltageBuffer.String())
+	if err != nil {
+		return 0, fmt.Errorf("strconv.Atoi() failed: %w", err)
+	}
+
+	return joltage, nil
+}
+
+func findMax(digits string) (int, int) {
+	max := int(digits[0] - byte('0'))
+	maxIndex := 0
+	for i, char := range digits {
+		digit := int(char - rune('0'))
+		if digit > max {
+			max = digit
+			maxIndex = i
+		}
+	}
+	return max, maxIndex
 }
 
 func parseBanks(r io.Reader) []string {
