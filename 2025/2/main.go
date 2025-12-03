@@ -54,26 +54,21 @@ func getInvalidIDs(r [2]int) []int {
 	max := r[1]
 
 	invalidIDs := make([]int, 0)
+NextID:
 	for currID := min; currID <= max; currID++ {
-		if isPart1Invalid(currID) {
-			invalidIDs = append(invalidIDs, currID)
+		stringID := strconv.Itoa(currID)
+		if len(stringID)%2 != 0 {
+			continue
 		}
+		secondHalfStart := len(stringID) / 2
+		for firstHalfCurr := 0; firstHalfCurr < secondHalfStart; firstHalfCurr++ {
+			if stringID[firstHalfCurr] != stringID[firstHalfCurr+secondHalfStart] {
+				continue NextID
+			}
+		}
+		invalidIDs = append(invalidIDs, currID)
 	}
 	return invalidIDs
-}
-
-func isPart1Invalid(id int) bool {
-	stringID := strconv.Itoa(id)
-	if len(stringID)%2 != 0 {
-		return false
-	}
-	secondHalfStart := len(stringID) / 2
-	for firstHalfCurr := 0; firstHalfCurr < secondHalfStart; firstHalfCurr++ {
-		if stringID[firstHalfCurr] != stringID[firstHalfCurr+secondHalfStart] {
-			return false
-		}
-	}
-	return true
 }
 
 func parseRanges(r io.Reader) ([][2]int, error) {
