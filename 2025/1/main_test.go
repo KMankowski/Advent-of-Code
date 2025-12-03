@@ -13,6 +13,7 @@ func TestRun(t *testing.T) {
 		name         string
 		inpRotations string
 		expMatches   int
+		expPasses    int
 	}{
 		{
 			"example",
@@ -27,6 +28,7 @@ L99
 R14
 L82`,
 			3,
+			3,
 		},
 		{
 			"large numbers",
@@ -36,6 +38,39 @@ L50
 L200
 R50`,
 			3,
+			3,
+		},
+		{
+			"big rotation",
+			"R1000",
+			0,
+			10,
+		},
+		{
+			"rotation passing and landing right",
+			`R150`,
+			1,
+			1,
+		},
+		{
+			"rotation passing and landing left",
+			`L150`,
+			1,
+			1,
+		},
+		{
+			"rotation starting passing and landing right",
+			`R50
+R250`,
+			1,
+			2,
+		},
+		{
+			"rotation starting passing and landing left",
+			`L50
+L250`,
+			1,
+			2,
 		},
 	}
 	for _, test := range tests {
@@ -43,13 +78,17 @@ R50`,
 			logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 			inpRotations := strings.NewReader(test.inpRotations)
 
-			matches, err := run(inpRotations, logger)
+			matches, passes, err := run(inpRotations, logger)
 			if err != nil {
 				t.Fatalf("unexpected error: %v\n", err)
 			}
 
 			if matches != test.expMatches {
-				t.Errorf("expMatches is %v but got %v", matches, test.expMatches)
+				t.Errorf("expMatches is %v but got %v", test.expMatches, matches)
+			}
+
+			if passes != test.expPasses {
+				t.Errorf("expPasses is %v but got %v", test.expPasses, passes)
 			}
 		})
 	}
