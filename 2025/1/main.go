@@ -10,7 +10,7 @@ import (
 
 const STARTING_POSITION = 50
 const MATCHING_POSITION = 0
-const INPUT_FILE = "./input.txt"
+const INPUT_FILE = "./2025/1/input.txt"
 
 func main() {
 	// Default log level is Info, ignoring Debug statements
@@ -22,24 +22,55 @@ func main() {
 		os.Exit(1)
 	}
 
-	matches, err := run(input, logger)
+	matches, passes, err := run(input, logger)
 	if err != nil {
 		logger.Error("run() failed", "error", err)
 		os.Exit(1)
 	}
 
-	logger.Info("success", slog.Int("matches", matches))
+	logger.Info("success", slog.Int("matches", matches), slog.Int("passes", passes))
 }
 
-func run(input io.Reader, logger *slog.Logger) (int, error) {
+func run(input io.Reader, logger *slog.Logger) (int, int, error) {
 	rotations, err := parseRotations(input)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	matches := countMatches(rotations, logger)
 
-	return matches, nil
+	// No need to log position twice
+	passes := countPasses(rotations)
+
+	return matches, passes, nil
+}
+
+func countPasses(rotations []int) int {
+	passes := 0
+	currPosition := STARTING_POSITION
+	for _, rotation := range rotations {
+		if (rotation < 0) && (currPosition+rotation < 0) {
+			passes += ((((currPosition + rotation) / 100) - 1) * -1)
+			if currPosition == 0 {
+				passes--
+			}
+			if currPosition+rotation%100 == 0 {
+				passes--
+			}
+		} else if (rotation > 0) && (currPosition+rotation > 99) {
+			passes += ((currPosition + rotation) / 100)
+		}
+
+		currPosition += rotation
+		currPosition %= 100
+		if currPosition < 0 {
+			currPosition += 100
+		}
+		if currPosition == 0 && rotation > 0 {
+			passes--
+		}
+	}
+	return passes
 }
 
 func countMatches(rotations []int, logger *slog.Logger) int {
@@ -48,6 +79,9 @@ func countMatches(rotations []int, logger *slog.Logger) int {
 	for _, rotation := range rotations {
 		currPosition += rotation
 		currPosition %= 100
+		if currPosition < 0 {
+			currPosition += 100
+		}
 		logger.Debug("updated position", slog.Int("position", currPosition))
 		if currPosition == MATCHING_POSITION {
 			matches++
