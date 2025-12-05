@@ -27,32 +27,54 @@ func main() {
 		os.Exit(1)
 	}
 
-	rolls, err := run(input)
+	rollsPart1, rollsPart2, err := run(input)
 	if err != nil {
 		l.Error("run() failed", "error", err)
 		os.Exit(1)
 	}
 
-	l.Info("success", slog.Int("rolls", rolls))
+	l.Info("success", slog.Int("part1", rollsPart1), slog.Int("part2", rollsPart2))
 }
 
-func run(r io.Reader) (int, error) {
+func run(r io.Reader) (int, int, error) {
+	// Part 1
 	grid, err := parseGrid(r)
 	if err != nil {
-		return 0, fmt.Errorf("parseGrid() error: %w", err)
+		return 0, 0, fmt.Errorf("parseGrid() error: %w", err)
 	}
+	rolls := len(getReachableRolls(grid))
 
-	rolls := getReachableRolls(grid)
+	// Part 2
+	rollsPart2 := iterateReachableRolls(grid)
 
-	return rolls, nil
+	return rolls, rollsPart2, nil
 }
 
-func getReachableRolls(grid [][]gridEntry) int {
-	reachableRolls := 0
+func iterateReachableRolls(grid [][]gridEntry) int {
+	rollsCleared := 0
+	reachableRolls := getReachableRolls(grid)
+
+	for len(reachableRolls) > 0 {
+		clearReachableRolls(grid, reachableRolls)
+		rollsCleared += len(reachableRolls)
+
+		reachableRolls = getReachableRolls(grid)
+	}
+	return rollsCleared
+}
+
+func clearReachableRolls(grid [][]gridEntry, reachableRolls [][2]int) {
+	for _, reachableRoll := range reachableRolls {
+		grid[reachableRoll[0]][reachableRoll[1]] = cleared
+	}
+}
+
+func getReachableRolls(grid [][]gridEntry) [][2]int {
+	reachableRolls := make([][2]int, 0)
 	for rowIndex := range grid {
 		for colIndex := range grid[rowIndex] {
 			if isReachableRoll(grid, rowIndex, colIndex) {
-				reachableRolls++
+				reachableRolls = append(reachableRolls, [2]int{rowIndex, colIndex})
 			}
 		}
 	}
