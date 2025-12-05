@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log/slog"
-	"os"
 	"strings"
 	"testing"
 )
@@ -31,10 +29,9 @@ func TestRun(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			l := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 			inpRawGrid := strings.NewReader(test.inpRawGrid)
 
-			rolls, err := run(inpRawGrid, l)
+			rolls, err := run(inpRawGrid)
 			if err != nil {
 				t.Fatalf("unexpected error: %v\n", err)
 			}
