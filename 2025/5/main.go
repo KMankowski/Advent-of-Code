@@ -12,6 +12,11 @@ import (
 
 const INPUT_FILE = "./2025/5/input.txt"
 
+const (
+	low int = iota
+	high
+)
+
 func main() {
 	l := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
@@ -21,21 +26,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	freshIngredients, err := run(input)
+	freshIngredients, part2, err := run(input)
 	if err != nil {
 		l.Error("run() failed", "error", err)
 		os.Exit(1)
 	}
 
-	l.Info("success", slog.Int("ingredients", freshIngredients))
+	l.Info("success", slog.Int("part1", freshIngredients), slog.Int("part2", part2))
 }
 
-func run(r io.Reader) (int, error) {
+func run(r io.Reader) (int, int, error) {
 	ranges, ingredients, err := parseRangesAndIngredients(r)
 	if err != nil {
-		return 0, fmt.Errorf("parseRangesAndIngredients() failed: %w", err)
+		return 0, 0, fmt.Errorf("parseRangesAndIngredients() failed: %w", err)
 	}
 
+	// Part1
 	freshIngredients := make([]int, 0)
 	for _, ingredient := range ingredients {
 		if isIngredientFresh(ranges, ingredient) {
@@ -43,16 +49,71 @@ func run(r io.Reader) (int, error) {
 		}
 	}
 
-	return len(freshIngredients), nil
+	// Part2
+	normalizedRanges := normalizeRanges(ranges)
+
+	totalOfRanges := 0
+	for _, r := range normalizedRanges {
+		totalOfRanges += r[high] - r[low] + 1
+	}
+
+	return len(freshIngredients), totalOfRanges, nil
+}
+
+func normalizeRanges(ranges [][2]int) [][2]int {
+	normalizedRanges := make([][2]int, 0)
+	for _, r := range ranges {
+		normalizedRanges = normalizeRange(normalizedRanges, r)
+	}
+	return normalizedRanges
+}
+
+func normalizeRange(normalizedRanges [][2]int, newRange [2]int) [][2]int {
+	for currRangeIndex, currRange := range normalizedRanges {
+		if isInRange(currRange, newRange[low]) && isInRange(currRange, newRange[high]) {
+			return normalizedRanges
+		}
+		if isInRange(currRange, newRange[low]) {
+			newRange[low] = currRange[low]
+			normalizedRanges = removeRange(normalizedRanges, currRangeIndex)
+			return normalizeRange(normalizedRanges, newRange)
+		}
+		if isInRange(currRange, newRange[high]) {
+			newRange[high] = currRange[high]
+			normalizedRanges = removeRange(normalizedRanges, currRangeIndex)
+			return normalizeRange(normalizedRanges, newRange)
+		}
+		if newRange[low] < currRange[low] && newRange[high] > currRange[high] {
+			normalizedRanges = removeRange(normalizedRanges, currRangeIndex)
+			return normalizeRange(normalizedRanges, newRange)
+		}
+	}
+	normalizedRanges = append(normalizedRanges, newRange)
+	return normalizedRanges
+}
+
+func removeRange(ranges [][2]int, index int) [][2]int {
+	if ranges == nil || index >= len(ranges) || index < 0 {
+		return ranges
+	}
+	if len(ranges) == 1 {
+		return nil
+	}
+	ranges[index] = ranges[len(ranges)-1]
+	return ranges[:len(ranges)-1]
 }
 
 func isIngredientFresh(ranges [][2]int, ingredient int) bool {
 	for _, r := range ranges {
-		if ingredient >= r[0] && ingredient <= r[1] {
+		if isInRange(r, ingredient) {
 			return true
 		}
 	}
 	return false
+}
+
+func isInRange(r [2]int, v int) bool {
+	return v >= r[low] && v <= r[high]
 }
 
 func parseRangesAndIngredients(r io.Reader) ([][2]int, []int, error) {
